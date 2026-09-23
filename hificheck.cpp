@@ -1,5 +1,5 @@
 // Streaming, bounded-memory screen for sequence-visible PacBio CCS artefacts.
-// C++17; no third-party libraries. Evidence flags require biological review.
+// C++17; no third-party libraries. Decisions are automated FASTA heuristics.
 #include <algorithm>
 #include <atomic>
 #include <chrono>
