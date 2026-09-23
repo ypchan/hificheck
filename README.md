@@ -11,6 +11,20 @@ HiFiCheck uses C++17 and the standard library. It does not require a virtual
 environment, Conda, Python packages or a read database. Python 3 is needed
 only to run the optional tests and synthetic benchmark.
 
+![How CCS artefacts arise and how HiFiCheck classifies them](docs/hificheck_concept.svg)
+
+**Conceptual overview.** CCS combines repeated observations of one circular
+SMRTbell molecule into one consensus read. A residual adapter can appear
+inside a read, while a miscalled adapter can leave long reverse-complement
+arms. A genuine tandem rRNA array instead has same-orientation operon copies
+in one insert. HiFiCheck uses sequence signals in FASTA to exclude or
+quarantine suspicious reads while retaining direct repeats as candidate
+biological structures. The diagram is schematic; the sequence patterns do
+not prove molecular origin.
+
+[Download the PNG](docs/hificheck_concept.png) or
+[edit the vector SVG](docs/hificheck_concept.svg).
+
 ## What it does
 
 - Reads plain, multiline FASTA as a stream; accepts a file or standard input.
@@ -223,3 +237,7 @@ concatenation, adapter-palindrome and adapter-residue failure classes:
 [HiFiAdapterFilt](https://github.com/sheinasim-USDA/HiFiAdapterFilt) is an
 existing adapter-contamination filter for HiFi reads; HiFiCheck additionally
 separates long direct from inverted self-repeat patterns in FASTA input.
+
+## License
+
+HiFiCheck is released under the [MIT License](LICENSE).
