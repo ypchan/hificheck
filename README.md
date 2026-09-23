@@ -11,6 +11,9 @@ HiFiCheck uses C++17 and the standard library. It does not require a virtual
 environment, Conda, Python packages or a read database. Python 3 is needed
 only to run the optional tests and synthetic benchmark.
 
+**Development attribution:** The code in this repository was developed by
+GPT-6 Sol under the guidance and supervision of Yanpeng Chen.
+
 ![How CCS artefacts arise and how HiFiCheck classifies them](docs/hificheck_concept.svg)
 
 **Conceptual overview.** CCS combines repeated observations of one circular

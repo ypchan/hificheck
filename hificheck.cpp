@@ -1,5 +1,6 @@
 // Streaming, bounded-memory screen for sequence-visible PacBio CCS artefacts.
 // C++17; no third-party libraries. Decisions are automated FASTA heuristics.
+// Developed by GPT-6 Sol under the guidance and supervision of Yanpeng Chen.
 #include <algorithm>
 #include <atomic>
 #include <chrono>
