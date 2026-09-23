@@ -14,7 +14,7 @@ only to run the optional tests and synthetic benchmark.
 **Development attribution:** The code in this repository was developed by
 GPT-6 Sol under the guidance and supervision of Yanpeng Chen.
 
-![How CCS artefacts arise and how HiFiCheck classifies them](docs/hificheck_concept.svg)
+![How CCS artefacts arise and how HiFiCheck classifies them](docs/hificheck_concept_light.svg)
 
 **Conceptual overview.** CCS combines repeated observations of one circular
 SMRTbell molecule into one consensus read. A residual adapter can appear
@@ -25,8 +25,8 @@ quarantine suspicious reads while retaining direct repeats as candidate
 biological structures. The diagram is schematic; the sequence patterns do
 not prove molecular origin.
 
-[Download the PNG](docs/hificheck_concept.png) or
-[edit the vector SVG](docs/hificheck_concept.svg).
+[Download the PNG](docs/hificheck_concept_light.png) or
+[edit the vector SVG](docs/hificheck_concept_light.svg).
 
 ## What it does
 

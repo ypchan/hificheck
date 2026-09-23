@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1120" viewBox="0 0 1600 1120" role="img" aria-labelledby="title desc">
+  <title id="title">HiFiCheck: from circular consensus to FASTA-based read decisions</title>
+  <desc id="desc">A light-toned scientific schematic. PacBio circular consensus uses repeated passes of one SMRTbell molecule to produce one HiFi read. HiFiCheck detects retained adapter sequence and inverted self-repeat patterns as possible artefacts, while preserving possible biological tandem rRNA operons. A read without a screened signal is kept. Sequence-only FASTA cannot establish the molecular cause or assess read quality.</desc>
+  <defs>
+    <style>
+      .f{font-family:Arial,Helvetica,sans-serif}
+      .ink{fill:#173B43}
+      .muted{fill:#627E82}
+      .tiny{font-size:15px}
+      .small{font-size:17px}
+      .body{font-size:19px}
+      .step{font-size:22px;font-weight:700}
+      .cardtitle{font-size:24px;font-weight:700}
+      .action{font-size:20px;font-weight:700}
+    </style>
+    <linearGradient id="page" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#FBFEFC"/>
+      <stop offset=".55" stop-color="#F6FCFA"/>
+      <stop offset="1" stop-color="#F4FAFC"/>
+    </linearGradient>
+    <linearGradient id="mint" x1="0" x2="1">
+      <stop offset="0" stop-color="#BDEBE0"/>
+      <stop offset="1" stop-color="#DFF6EC"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M1 1 L8 5 L1 9" fill="none" stroke="#7AA4A6" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <rect width="1600" height="1120" fill="url(#page)"/>
+  <circle cx="1504" cy="35" r="180" fill="#E8F7F3" opacity=".65"/>
+  <circle cx="49" cy="1103" r="166" fill="#E9F6FA" opacity=".7"/>
+
+  <!-- Header -->
+  <rect x="72" y="48" width="157" height="39" rx="19.5" fill="#DDF5EB"/>
+  <circle cx="94" cy="67.5" r="7" fill="#39A68F"/>
+  <text x="116" y="74" class="f small" font-weight="700" fill="#247668">HiFiCheck</text>
+  <text x="72" y="139" class="f ink" font-size="52" font-weight="700" letter-spacing="-.9">From one circular molecule to a read-level decision</text>
+  <text x="74" y="181" class="f body muted">A sequence-based screen for CCS-like artefact signals that preserves possible biological rRNA tandems</text>
+  <path d="M72 209 H1528" stroke="#D7E8E7" stroke-width="2"/>
+
+  <!-- CCS process -->
+  <rect x="72" y="236" width="1456" height="282" rx="27" fill="#FFFFFF" stroke="#DCEBE8" stroke-width="2"/>
+  <circle cx="105" cy="274" r="17" fill="#2A9C88"/>
+  <text x="105" y="281" class="f small" font-weight="700" text-anchor="middle" fill="#FFFFFF">1</text>
+  <text x="138" y="281" class="f step ink">How a HiFi read is made</text>
+  <rect x="1261" y="255" width="241" height="38" rx="19" fill="#E5F7EF"/>
+  <text x="1381" y="280" text-anchor="middle" class="f small" font-weight="700" fill="#257D68">one molecule → one read</text>
+
+  <text x="238" y="322" text-anchor="middle" class="f body ink" font-weight="700">Circular SMRTbell</text>
+  <circle cx="238" cy="406" r="57" fill="#F3FCF8" stroke="#48AA96" stroke-width="15"/>
+  <path d="M199 366 A57 57 0 0 1 220 352" fill="none" stroke="#F5B56A" stroke-width="15" stroke-linecap="round"/>
+  <path d="M277 446 A57 57 0 0 1 256 460" fill="none" stroke="#F5B56A" stroke-width="15" stroke-linecap="round"/>
+  <path d="M231 338 C277 332 308 355 316 382" fill="none" stroke="#39A58F" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <text x="238" y="413" text-anchor="middle" class="f small" font-weight="700" fill="#2A786C">insert</text>
+  <text x="238" y="492" text-anchor="middle" class="f tiny muted">coral = SMRTbell adapter</text>
+
+  <path d="M350 405 H437" stroke="#8EB8B7" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <text x="674" y="322" text-anchor="middle" class="f body ink" font-weight="700">Repeated passes of the same insert</text>
+  <g stroke-linecap="round">
+    <path d="M503 372 H835" stroke="#D1E5E4" stroke-width="15"/>
+    <path d="M503 405 H835" stroke="#D1E5E4" stroke-width="15"/>
+    <path d="M503 438 H835" stroke="#D1E5E4" stroke-width="15"/>
+    <path d="M519 372 H819 M519 405 H819 M519 438 H819" stroke="#77C1B0" stroke-width="15"/>
+  </g>
+  <g fill="#F5B56A">
+    <rect x="495" y="363" width="16" height="18" rx="4"/><rect x="827" y="363" width="16" height="18" rx="4"/>
+    <rect x="495" y="396" width="16" height="18" rx="4"/><rect x="827" y="396" width="16" height="18" rx="4"/>
+    <rect x="495" y="429" width="16" height="18" rx="4"/><rect x="827" y="429" width="16" height="18" rx="4"/>
+  </g>
+  <text x="861" y="378" class="f tiny muted">pass 1</text>
+  <text x="861" y="411" class="f tiny muted">pass 2</text>
+  <text x="861" y="444" class="f tiny muted">pass 3</text>
+  <text x="674" y="492" text-anchor="middle" class="f tiny muted">adapter boundaries separate passes</text>
+
+  <path d="M943 405 H1030" stroke="#8EB8B7" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <text x="1264" y="322" text-anchor="middle" class="f body ink" font-weight="700">Circular consensus</text>
+  <rect x="1077" y="369" width="375" height="73" rx="20" fill="#E7F8F0" stroke="#B7E3D5" stroke-width="2"/>
+  <rect x="1097" y="390" width="335" height="31" rx="15.5" fill="#50AD9B"/>
+  <path d="M1119 405 H1410" stroke="#D9F5E9" stroke-width="2.5" stroke-dasharray="12 8"/>
+  <text x="1264" y="492" text-anchor="middle" class="f tiny muted">one consensus sequence, no PCR copying</text>
+
+  <!-- Decision section -->
+  <circle cx="105" cy="563" r="17" fill="#2A9C88"/>
+  <text x="105" y="570" class="f small" font-weight="700" text-anchor="middle" fill="#FFFFFF">2</text>
+  <text x="138" y="570" class="f step ink">What HiFiCheck can see in an exported FASTA read</text>
+  <text x="1528" y="570" text-anchor="end" class="f small muted">Structural patterns suggest an action; they do not prove a molecular cause</text>
+
+  <!-- Card A -->
+  <rect x="72" y="598" width="460" height="365" rx="25" fill="#FFFAF3" stroke="#F2DDC1" stroke-width="2"/>
+  <rect x="94" y="620" width="42" height="42" rx="15" fill="#FFE7CB"/>
+  <text x="115" y="648" class="f small" font-weight="700" text-anchor="middle" fill="#A76528">A</text>
+  <text x="149" y="648" class="f cardtitle ink">Residual adapter</text>
+  <text x="97" y="686" class="f small muted">An adapter sequence remains inside a read</text>
+  <rect x="98" y="722" width="170" height="32" rx="9" fill="#78B9B1"/>
+  <rect x="271" y="722" width="40" height="32" rx="8" fill="#F1AD61"/>
+  <rect x="314" y="722" width="191" height="32" rx="9" fill="#78B9B1"/>
+  <text x="290" y="777" text-anchor="middle" class="f tiny" fill="#A76528">internal adapter match</text>
+  <path d="M302 790 V810" stroke="#D8B386" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="97" y="843" class="f small ink" font-weight="700">Signal</text>
+  <text x="164" y="843" class="f small muted">library-specific adapter hit</text>
+  <rect x="98" y="875" width="406" height="60" rx="18" fill="#FCE9D9"/>
+  <text x="301" y="912" text-anchor="middle" class="f action" fill="#9C5525">exclude_adapter</text>
+
+  <!-- Card B -->
+  <rect x="570" y="598" width="460" height="365" rx="25" fill="#F9F8FE" stroke="#DFDBF3" stroke-width="2"/>
+  <rect x="592" y="620" width="42" height="42" rx="15" fill="#E9E5FA"/>
+  <text x="613" y="648" class="f small" font-weight="700" text-anchor="middle" fill="#7663AD">B</text>
+  <text x="647" y="648" class="f cardtitle ink">Inverted self-repeat</text>
+  <text x="595" y="686" class="f small muted">A possible missed adapter boundary</text>
+  <rect x="595" y="722" width="186" height="32" rx="9" fill="#83AFD0"/>
+  <rect x="785" y="722" width="29" height="32" rx="7" fill="#FFF4E8" stroke="#E9B77B" stroke-width="2" stroke-dasharray="5 4"/>
+  <rect x="818" y="722" width="187" height="32" rx="9" fill="#AA9AD0"/>
+  <text x="687" y="744" text-anchor="middle" class="f tiny" font-weight="700" fill="#FFFFFF">forward →</text>
+  <text x="911" y="744" text-anchor="middle" class="f tiny" font-weight="700" fill="#FFFFFF">← reverse complement</text>
+  <text x="799" y="777" text-anchor="middle" class="f tiny" fill="#7663AD">candidate junction</text>
+  <path d="M800 790 V810" stroke="#B0A0D2" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="595" y="843" class="f small ink" font-weight="700">Signal</text>
+  <text x="662" y="843" class="f small muted">long inverted arms and junction</text>
+  <rect x="596" y="875" width="408" height="60" rx="18" fill="#ECE7F9"/>
+  <text x="800" y="905" text-anchor="middle" class="f action" fill="#68569E">exclude_palindrome</text>
+  <text x="800" y="925" text-anchor="middle" class="f tiny" fill="#7663AD">if terminal + short junction; else quarantine</text>
+
+  <!-- Card C -->
+  <rect x="1068" y="598" width="460" height="365" rx="25" fill="#F4FCF8" stroke="#CDECDD" stroke-width="2"/>
+  <rect x="1090" y="620" width="42" height="42" rx="15" fill="#DDF5E7"/>
+  <text x="1111" y="648" class="f small" font-weight="700" text-anchor="middle" fill="#2A8467">C</text>
+  <text x="1145" y="648" class="f cardtitle ink">Direct rRNA tandem</text>
+  <text x="1093" y="686" class="f small muted">Possible biological operon copies in one insert</text>
+  <g class="f tiny" text-anchor="middle" font-weight="700">
+    <rect x="1094" y="722" width="64" height="32" rx="7" fill="#77AFCA"/><text x="1126" y="744" fill="#FFFFFF">SSU</text>
+    <rect x="1161" y="722" width="52" height="32" rx="7" fill="#53B99F"/><text x="1187" y="744" fill="#FFFFFF">ITS</text>
+    <rect x="1216" y="722" width="64" height="32" rx="7" fill="#6DA6A3"/><text x="1248" y="744" fill="#FFFFFF">LSU</text>
+    <rect x="1283" y="722" width="45" height="32" rx="7" fill="#D4E7E2"/><text x="1305" y="744" fill="#507C76">IGS</text>
+    <rect x="1331" y="722" width="64" height="32" rx="7" fill="#77AFCA"/><text x="1363" y="744" fill="#FFFFFF">SSU</text>
+    <rect x="1398" y="722" width="52" height="32" rx="7" fill="#53B99F"/><text x="1424" y="744" fill="#FFFFFF">ITS</text>
+    <rect x="1453" y="722" width="64" height="32" rx="7" fill="#6DA6A3"/><text x="1485" y="744" fill="#FFFFFF">LSU</text>
+  </g>
+  <text x="1304" y="777" text-anchor="middle" class="f tiny" fill="#2A8467">same-order units, one read</text>
+  <path d="M1302 790 V810" stroke="#96C9B6" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="1093" y="843" class="f small ink" font-weight="700">Signal</text>
+  <text x="1160" y="843" class="f small muted">long direct repeat, no stronger flag</text>
+  <rect x="1094" y="875" width="408" height="60" rx="18" fill="#DCF4E7"/>
+  <text x="1298" y="905" text-anchor="middle" class="f action" fill="#287B5C">keep_direct_repeat</text>
+  <text x="1298" y="925" text-anchor="middle" class="f tiny" fill="#397D68">one read counts as one molecule</text>
+
+  <!-- Unflagged read and evidence boundary -->
+  <rect x="72" y="989" width="566" height="83" rx="23" fill="#EAF7FB" stroke="#CFE7EE" stroke-width="2"/>
+  <circle cx="109" cy="1030" r="19" fill="#81BDD2"/>
+  <path d="M100 1030 H118" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+  <text x="144" y="1024" class="f small ink" font-weight="700">No screened structural signal</text>
+  <text x="144" y="1050" class="f small muted">keep  ·  absence of a hit is not proof of no artefact</text>
+
+  <rect x="662" y="989" width="866" height="83" rx="23" fill="#FFFFFF" stroke="#DCEBE8" stroke-width="2"/>
+  <circle cx="699" cy="1030" r="19" fill="#C8E8DE"/>
+  <text x="699" y="1037" text-anchor="middle" class="f body" font-weight="700" fill="#247668">i</text>
+  <text x="735" y="1024" class="f small ink" font-weight="700">FASTA-only evidence</text>
+  <text x="735" y="1050" class="f small muted">No QV, CCS pass counts or BAM tags. Check operon order and independent-read support downstream.</text>
+
+  <text x="1526" y="1102" text-anchor="end" class="f tiny muted">HiFiCheck  ·  conceptual schematic  ·  not to scale</text>
+</svg>
