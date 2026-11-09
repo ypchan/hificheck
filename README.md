@@ -84,7 +84,7 @@ records. Use `-i -` for standard input. Each header must begin with `>` and
 contain a nonempty identifier. The identifier is the first whitespace-delimited
 token; the optional retained FASTA preserves the entire original header. Bases
 must use IUPAC DNA symbols. Ambiguity codes other than A/C/G/T are treated as
-`N` for exact-repeat screening.
+`N` for exact-repeat screening; retained FASTA preserves their IUPAC symbols.
 
 Use **CCS/HiFi consensus reads**, not raw polymerase or subread sequences.
 For a metagenomic rRNA study, screening ITS-bearing candidate reads is faster
@@ -168,7 +168,10 @@ For `-o PREFIX.tsv`, HiFiCheck writes:
 | Path from `--retained-fasta` | Full FASTA of `keep` and `keep_direct_repeat` reads |
 
 The TSV includes adapter name, orientation, mismatch count and coordinates,
-plus the best long-repeat orientation, spans and seed-pair count. Coordinates
+plus the selected long-repeat orientation, spans and seed-pair count.
+Qualifying inverted repeats take priority over direct repeats; within one
+orientation, the highest seed-pair count is selected. Feature counts refer
+to this selected repeat, not all repeats present in a read. Coordinates
 are zero-based and half-open. A blank adapter field means no match was found
 under the supplied adapter reference, or that no reference was supplied. Check
 the summary's `adapters` field to distinguish those cases. Output files are

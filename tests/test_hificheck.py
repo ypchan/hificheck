@@ -119,6 +119,40 @@ class TestFastaScreen(unittest.TestCase):
         self.assertNotIn(">palindrome", summary["_retained_fasta"])
         self.assertEqual(summary["_quarantine_ids"], ["palindrome"])
 
+    def test_mixed_orientation_must_not_be_retained(self):
+        unit = dna(2900, 12)
+        rows, summary = self.run_screen([("mixed", unit * 3 + rc(unit))])
+        self.assertEqual(rows[0]["repeat_orientation"], "-")
+        self.assertIn("mixed", summary["_quarantine_ids"])
+
+    def test_retained_iupac_is_preserved(self):
+        seq = "ACGTRYWSKMBDHVN"
+        _, summary = self.run_screen([("iupac", seq)], retained=True)
+        self.assertIn(seq, summary["_retained_fasta"])
+
+    def test_invalid_numeric_and_input_aliases(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            fasta = folder / "input.fa"
+            original = ">r\nACGT\n"
+            fasta.write_text(original)
+            for flag, value in [("--threads", "4294967297"),
+                                ("--batch-bases", "-1"),
+                                ("--min-repeat-span", "4294969096")]:
+                run = subprocess.run([str(BIN), "-i", str(fasta), "-o",
+                                      str(folder / "out"), flag, value], capture_output=True)
+                self.assertEqual(run.returncode, 1)
+            for hard in (False, True):
+                alias = folder / ("hard" if hard else "sym")
+                if hard:
+                    os.link(fasta, alias)
+                else:
+                    alias.symlink_to(fasta)
+                run = subprocess.run([str(BIN), "-i", str(fasta), "-o",
+                                      str(alias), "--force"], capture_output=True)
+                self.assertEqual(run.returncode, 1)
+                self.assertEqual(fasta.read_text(), original)
+
     def test_existing_output_requires_force(self):
         with tempfile.TemporaryDirectory() as folder:
             folder = Path(folder)

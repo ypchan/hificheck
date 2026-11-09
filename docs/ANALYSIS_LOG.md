@@ -1,0 +1,1 @@
+2026-11-09 | Local algorithm/debug review: corrected inverted-repeat priority and IUPAC preservation; hardened parameters, paths, worker errors and build; 12 standard + 12 UBSan tests passed; synthetic 100 Mb benchmark 9,177/38,271 reads/s at 1/8 workers. No real-data accuracy validation.

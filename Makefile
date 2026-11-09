@@ -8,7 +8,7 @@ all: bin/hificheck
 
 bin/hificheck: hificheck.cpp
 	mkdir -p bin
-	$(CXX) $(CXXFLAGS) -o $@ $<
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -std=c++17 -pthread -o $@ $< $(LDFLAGS) $(LDLIBS)
 
 test: bin/hificheck
 	python3 -m unittest discover -s tests -p 'test_hificheck.py' -v

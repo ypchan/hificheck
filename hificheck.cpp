@@ -15,6 +15,8 @@
 #include <iomanip>
 #include <iostream>
 #include <map>
+#include <limits>
+#include <exception>
 #include <mutex>
 #include <stdexcept>
 #include <string>
@@ -71,10 +73,18 @@ static void usage() {
       "up to 10% of adapter length; indels and BAM/quality evidence are not assessed.\n";
 }
 static unsigned long long parse_ull(const std::string& value, const char* label) {
+    if (value.empty() || value.find_first_not_of("0123456789") != std::string::npos)
+        throw std::runtime_error(std::string("Invalid ") + label + ": " + value);
     size_t end = 0;
     unsigned long long n = std::stoull(value, &end);
     if (end != value.size()) throw std::runtime_error(std::string("Invalid ") + label + ": " + value);
+    if (n > static_cast<unsigned long long>(std::numeric_limits<int>::max()))
+        throw std::runtime_error(std::string("Numeric parameter out of range: ") + label);
     return n;
+}
+static bool same_path(const std::filesystem::path& a, const std::filesystem::path& b) {
+    return std::filesystem::weakly_canonical(a)==std::filesystem::weakly_canonical(b) ||
+        (std::filesystem::exists(a) && std::filesystem::exists(b) && std::filesystem::equivalent(a,b));
 }
 static Options parse_args(int argc, char** argv) {
     Options o;
@@ -98,17 +108,18 @@ static Options parse_args(int argc, char** argv) {
         else throw std::runtime_error("Unknown option: " + k);
     }
     if (o.input.empty() || o.output.empty()) throw std::runtime_error("--input and --output are required");
+    if (o.input=="-" && o.adapters=="-") throw std::runtime_error("Input and adapters cannot both use stdin");
     if (o.summary.empty()) o.summary=o.output+".summary.json";
     std::vector<std::string> output_paths={o.output,o.summary,o.output+".quarantine.ids",
         o.output+".direct_repeat.ids"};
     if(!o.retained_fasta.empty()) output_paths.push_back(o.retained_fasta);
     for(size_t j=0;j<output_paths.size();++j) {
         const auto path=std::filesystem::absolute(output_paths[j]).lexically_normal();
-        if(o.input!="-" && path==std::filesystem::absolute(o.input).lexically_normal())
+        if(o.input!="-" && same_path(path,o.input))
             throw std::runtime_error("Output path overlaps input FASTA");
-        if(!o.adapters.empty() && o.adapters!="-" && path==std::filesystem::absolute(o.adapters).lexically_normal())
+        if(!o.adapters.empty() && o.adapters!="-" && same_path(path,o.adapters))
             throw std::runtime_error("Output path overlaps adapter FASTA");
-        for(size_t k=0;k<j;++k) if(path==std::filesystem::absolute(output_paths[k]).lexically_normal())
+        for(size_t k=0;k<j;++k) if(same_path(path,output_paths[k]))
             throw std::runtime_error("Output paths must differ");
         if(!o.force && std::filesystem::exists(path))
             throw std::runtime_error("Output already exists (use --force to replace): "+output_paths[j]);
@@ -146,7 +157,7 @@ static void append_sequence(std::string& seq, const std::string& line) {
         if(c!='A' && c!='C' && c!='G' && c!='T' && c!='N') {
             if(std::string("RYWSKMBDHV").find(c)==std::string::npos)
                 throw std::runtime_error("FASTA must contain IUPAC DNA bases only");
-            c='N'; // Ambiguous bases cannot support exact repeat seeds.
+            // Preserve IUPAC symbols; base_code rejects them as repeat seeds.
         }
         seq.push_back(c);
     }
@@ -197,7 +208,7 @@ static std::vector<Adapter> load_adapters(const std::string& path) {
     if(path.empty()) return a;
     FastaReader reader(path); Record r;
     while(reader.next(r)) {
-        if(r.seq.size()<24 || r.seq.find('N')!=std::string::npos)
+        if(r.seq.size()<24 || r.seq.find_first_not_of("ACGT")!=std::string::npos)
             throw std::runtime_error("Adapter must have >=24 A/C/G/T bases: " + r.id);
         a.push_back({r.id,r.seq,"+"});
         a.push_back({r.id,reverse_complement(r.seq),"-"});
@@ -229,6 +240,7 @@ static AdapterHit scan_adapters(const std::string& seq, const std::vector<Adapte
                             if(!best.found || (internal && !best.internal) ||
                                (internal==best.internal && mm<best.mismatches))
                                 best={true,internal,a.name,a.strand,start,start+len,mm};
+                            if(internal && mm==0) return best;
                         }
                     }
                 }
@@ -251,17 +263,19 @@ static RepeatHit scan_repeat(const std::string& seq, const Options& o,
      std::unordered_map<uint64_t,std::vector<SeedPos>>& index,
      std::unordered_map<uint64_t,Bin>& bins) {
     constexpr int K=17;
-    if(seq.size()<static_cast<size_t>(o.min_repeat_span*2)) return {};
+    if(seq.size()<static_cast<size_t>(o.min_repeat_span)*2) return {};
     index.clear(); bins.clear();
     const uint64_t mask=(1ULL<<(2*K))-1;
     uint64_t forward=0,reverse=0;
     int valid=0;
+    if(seq.size()>UINT32_MAX/2) throw std::runtime_error("Read exceeds supported coordinate range");
     for(uint32_t i=0;i<seq.size();++i) {
         int b=base_code(seq[i]);
         if(b<0) { forward=reverse=0; valid=0; continue; }
         forward=((forward<<2)|static_cast<uint64_t>(b))&mask;
         reverse=(reverse>>2)|(static_cast<uint64_t>(3-b)<<(2*(K-1)));
-        if(++valid<K) continue;
+        if(valid<K) ++valid;
+        if(valid<K) continue;
         const uint64_t canonical=std::min(forward,reverse);
         if((mix64(canonical)&static_cast<uint64_t>(o.seed_mod-1))!=0) continue;
         const bool rev=(reverse<forward);
@@ -288,7 +302,10 @@ static RepeatHit scan_repeat(const std::string& seq, const Options& o,
         const Bin& b=kv.second;
         const int span=static_cast<int>(b.hi-b.lo+K);
         if(b.pairs<o.min_seed_pairs || span<o.min_repeat_span) continue;
-        if(!best.found || b.pairs>best.pairs) {
+        const char orientation=(kv.first&1)?'-':'+';
+        if(!best.found || (orientation=='-' && best.orientation=='+') ||
+           (orientation==best.orientation && (b.pairs>best.pairs ||
+            (b.pairs==best.pairs && b.lo<best.first_start)))) {
             best={true,(kv.first&1)?'-':'+',b.lo,b.hi+K,b.other_lo,b.other_hi+K,b.pairs};
         }
     }
@@ -381,14 +398,17 @@ int main(int argc,char** argv) {
         std::deque<Batch> tasks;
         std::map<uint64_t,BatchResult> completed;
         bool done=false;
+        std::exception_ptr worker_error;
         std::vector<std::thread> workers;
+        try {
         for(unsigned t=0;t<o.threads;++t) workers.emplace_back([&]() {
+            try {
             while(true) {
                 Batch b;
                 {
                     std::unique_lock<std::mutex> lock(mutex);
                     task_cv.wait(lock,[&]{return done||!tasks.empty();});
-                    if(tasks.empty()) return;
+                    if(worker_error || tasks.empty()) return;
                     b=std::move(tasks.front()); tasks.pop_front();
                 }
                 BatchResult result=process_batch(std::move(b),o,adapters);
@@ -398,14 +418,27 @@ int main(int argc,char** argv) {
                 }
                 done_cv.notify_one();
             }
+            } catch(...) {
+                { std::lock_guard<std::mutex> lock(mutex);
+                  if(!worker_error) worker_error=std::current_exception();
+                  done=true; tasks.clear(); }
+                task_cv.notify_all(); done_cv.notify_all();
+            }
         });
+        } catch(...) {
+            { std::lock_guard<std::mutex> lock(mutex); done=true; }
+            task_cv.notify_all();
+            for(auto& worker:workers) if(worker.joinable()) worker.join();
+            throw;
+        }
         Counters total;
         uint64_t issued=0, written=0;
         auto collect=[&]() {
             BatchResult result;
             {
                 std::unique_lock<std::mutex> lock(mutex);
-                done_cv.wait(lock,[&]{return completed.count(written)!=0;});
+                done_cv.wait(lock,[&]{return worker_error || completed.count(written)!=0;});
+                if(worker_error) std::rethrow_exception(worker_error);
                 auto it=completed.find(written);
                 result=std::move(it->second); completed.erase(it);
             }
@@ -474,6 +507,7 @@ int main(int argc,char** argv) {
                <<",\n  \"seconds\": "<<std::fixed<<std::setprecision(3)<<seconds
                <<",\n  \"reads_per_second\": "<<std::fixed<<std::setprecision(1)
                <<(seconds>0?total.reads/seconds:0)<<",\n  \"fasta_quality_and_bam_tags\": \"unavailable\"\n}\n";
+        summary.close();
         if(!summary) throw std::runtime_error("Failed writing summary");
         std::cerr<<"Done: "<<total.reads<<" reads; quarantined="
                  <<(total.exclude_adapter+total.exclude_palindrome+total.quarantine)
