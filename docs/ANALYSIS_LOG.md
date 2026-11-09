@@ -1,1 +1,5 @@
 2026-11-09 | Local algorithm/debug review: corrected inverted-repeat priority and IUPAC preservation; hardened parameters, paths, worker errors and build; 12 standard + 12 UBSan tests passed; synthetic 100 Mb benchmark 9,177/38,271 reads/s at 1/8 workers. No real-data accuracy validation.
+2026-11-09 | Replaced README illustration with white-background workflow PNG; removed tinted cards and gradients; reviewed decision order against code. Original assets preserved.
+2026-11-09 | Replaced simple README flowchart with six illustrated sequence classes; caption specifies exact terminal/palindrome conditions and priority. AI-generated raster schematic, not publication typography export.
+2026-11-09 | Integrated sequence structures, decision priority and output actions in one white-background README schematic; verified arrow orientations and action ordering visually.
+2026-11-09 | User approved latest integrated illustration; retained hificheck_integrated.png and removed four superseded concept PNG/SVG assets. README image and download references verified.

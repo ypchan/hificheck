@@ -16,3 +16,8 @@ alignment; high-copy seed cap can miss repeats; only one prioritized repeat is
 reported; batch limits do not cap a single read's memory. Real-data sensitivity,
 specificity and fault-injection tests for allocation/thread failures not run.
 No remote runs submitted.
+
+Current README illustration: docs/hificheck_integrated.png.
+Combines six sequence structures with decision priority and output actions.
+White background; AI-generated raster schematic, not a 6 pt publication export.
+Superseded concept PNG/SVG assets removed at user request.

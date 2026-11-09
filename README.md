@@ -14,19 +14,26 @@ only to run the optional tests and synthetic benchmark.
 **Development attribution:** The code in this repository was developed by
 GPT-6 Sol under the guidance and supervision of Yanpeng Chen.
 
-![How CCS artefacts arise and how HiFiCheck classifies them](docs/hificheck_concept_light.svg)
+![HiFiCheck integrated sequence structures and decision workflow](docs/hificheck_integrated.png)
 
-**Conceptual overview.** CCS combines repeated observations of one circular
-SMRTbell molecule into one consensus read. A residual adapter can appear
-inside a read, while a miscalled adapter can leave long reverse-complement
-arms. A genuine tandem rRNA array instead has same-orientation operon copies
-in one insert. HiFiCheck uses sequence signals in FASTA to exclude or
-quarantine suspicious reads while retaining direct repeats as candidate
-biological structures. The diagram is schematic; the sequence patterns do
-not prove molecular origin.
+**Screening workflow.** Reads are streamed in bounded batches and screened for
+library-specific adapters and self-repeat patterns. Decisions follow the priority
+shown above; qualifying inverted-repeat evidence takes priority over direct repeats.
+Only `keep` and `keep_direct_repeat` reads enter the optional retained FASTA.
+Sequence patterns do not establish molecular origin or rRNA operon identity.
 
-[Download the PNG](docs/hificheck_concept_light.png) or
-[edit the vector SVG](docs/hificheck_concept_light.svg).
+[Download the integrated schematic PNG](docs/hificheck_integrated.png).
+The structure column illustrates internal and terminal adapters, near-terminal
+and other inverted repeats, direct repeats, and reads without a detected signal,
+aligned with their decision nodes and output actions. Here rc(A) denotes the
+reverse complement of A.
+Terminal adapter means less than 100 bp of flanking sequence on at least one side.
+The palindrome rule additionally requires a selected arm within 200 bp of a read
+end, twice the first seeded arm span at least 70% of read length, and a
+nonnegative junction gap no greater than 500 bp. Panels are schematic; outcome
+labels assume no higher-priority signal is present.
+The workflow illustration was generated with AI and checked against the decision
+order in `hificheck.cpp`.
 
 ## What it does
 
