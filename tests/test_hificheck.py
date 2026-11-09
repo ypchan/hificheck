@@ -49,6 +49,66 @@ class TestFastaScreen(unittest.TestCase):
             summary["_retained_fasta"] = (tmp / "retained.fa").read_text() if retained else None
             return rows, summary
 
+    def test_help_output_contract_and_no_color_redirect(self):
+        run = subprocess.run([str(BIN), "--help"], capture_output=True, text=True)
+        self.assertEqual(run.returncode, 0)
+        self.assertNotIn("\x1b[", run.stdout)
+        self.assertIn("NOT a directory or filename prefix", run.stdout)
+        self.assertIn("sample.hificheck.tsv.summary.json", run.stdout)
+        self.assertIn("--log-every", run.stdout)
+
+    @unittest.skipIf(os.name == "nt", "POSIX terminal check")
+    def test_help_terminal_color_and_no_color(self):
+        import pty
+        for disabled in (False, True):
+            master, slave = pty.openpty()
+            try:
+                env = dict(os.environ, TERM="xterm")
+                env.pop("NO_COLOR", None)
+                if disabled:
+                    env["NO_COLOR"] = "1"
+                run = subprocess.run([str(BIN), "--help"], stdout=slave,
+                                     stderr=subprocess.PIPE, env=env)
+                self.assertEqual(run.returncode, 0)
+                data = os.read(master, 16384)
+                self.assertEqual(b"\x1b[" in data, not disabled)
+            finally:
+                os.close(master)
+                os.close(slave)
+
+    @unittest.skipIf(os.name == "nt", "POSIX pipe readiness check")
+    def test_progress_while_waiting_for_stdin(self):
+        import select
+        import time
+        with tempfile.TemporaryDirectory() as folder:
+            report = Path(folder) / "report.tsv"
+            proc = subprocess.Popen([str(BIN), "-i", "-", "-o", str(report),
+                                     "--log-every", "1", "-t", "1"],
+                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE)
+            logs = b""
+            try:
+                deadline = time.monotonic() + 5
+                while b"[progress]" not in logs and time.monotonic() < deadline:
+                    if select.select([proc.stderr], [], [], 0.2)[0]:
+                        chunk = os.read(proc.stderr.fileno(), 16384)
+                        if not chunk:
+                            break
+                        logs += chunk
+                self.assertIn(b"[progress]", logs)
+                self.assertIn(b"input=reading", logs)
+                stdout, stderr = proc.communicate(b">r\nACGT\n", timeout=10)
+                self.assertEqual(proc.returncode, 0, stderr)
+                self.assertEqual(stdout, b"")
+                self.assertIn(b"[done] 1 reads; 4 bases", stderr)
+                self.assertIn(str(report).encode(), logs)
+                summary = json.loads(Path(str(report) + ".summary.json").read_text())
+                self.assertEqual(summary["reads"], 1)
+            finally:
+                if proc.poll() is None:
+                    proc.kill()
+                proc.communicate()
+
     def test_clean_and_multiline_fasta(self):
         rows, summary = self.run_screen([("clean", dna(5300, 1))])
         self.assertEqual(rows, [])

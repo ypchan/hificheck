@@ -5,3 +5,4 @@
 2026-11-09 | User approved latest integrated illustration; retained hificheck_integrated.png and removed four superseded concept PNG/SVG assets. README image and download references verified.
 2026-11-09 | Fixed filesystem link compatibility via Makefile probe and documented LDLIBS workaround. Auto and explicit library builds each passed 12 tests locally; target server compiler not tested.
 2026-11-09 | Changed default installation prefix to HOME; quoted installation paths; verified dry-run destination and temporary-prefix install plus --help.
+2026-11-09 | Improved help colors/grouping and exact output-path descriptions; added startup paths and independent timed stderr progress with --log-every; make test passed all 15 tests including blocked-stdin progress and terminal colors. No server installation or data run.

@@ -25,11 +25,17 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#ifdef _WIN32
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
 
 struct Record { std::string id, header, seq; };
 struct Adapter { std::string name, seq, strand; };
 struct Options {
     std::string input, output, summary, adapters, retained_fasta;
+    unsigned log_every = 5;
     unsigned threads = std::min(8u, std::max(1u, std::thread::hardware_concurrency()));
     size_t batch_bases = 2 * 1024 * 1024;
     int min_repeat_span = 1800;
@@ -53,22 +59,46 @@ struct Batch { uint64_t index; std::vector<Record> reads; };
 struct BatchResult { uint64_t index; std::string rows, quarantine_ids, direct_repeat_ids, retained_fasta; Counters counts; };
 
 static void usage() {
-    std::cout << "HiFiCheck (C++17)\n"
-      "  -i, --input FILE       FASTA input; '-' reads stdin (e.g. gzip -dc file.fa.gz | tool -i -)\n"
-      "  -o, --output FILE      TSV output; non-plain reads only by default\n"
-      "  --summary FILE         JSON summary (default: OUTPUT.summary.json)\n"
-      "  --adapters FILE        FASTA of library-specific SMRTbell adapters; optional\n"
-      "  --retained-fasta FILE  Write keep + keep_direct_repeat reads directly to FASTA\n"
+#ifdef _WIN32
+    const bool tty = _isatty(_fileno(stdout));
+#else
+    const bool tty = isatty(fileno(stdout));
+#endif
+    const char* term = std::getenv("TERM");
+    const bool color = tty && !std::getenv("NO_COLOR") && (!term || std::string(term)!="dumb");
+    const char* heading = color ? "\033[1;36m" : "";
+    const char* reset = color ? "\033[0m" : "";
+    std::cout << heading << "HiFiCheck | streaming FASTA artefact screen" << reset << "\n"
+      "Usage: hificheck --input reads.fa --output results.tsv [options]\n\n"
+      << heading << "Input and output" << reset << "\n"
+      "  -i, --input FILE       Plain FASTA file; '-' reads stdin. No direct gzip support.\n"
+      "  -o, --output FILE      Exact TSV file path, NOT a directory or filename prefix.\n"
+      "                        Only flagged reads by default; --all includes every read.\n"
+      "  --summary FILE        Exact JSON file path (default: OUTPUT.summary.json)\n"
+      "  --retained-fasta FILE  Exact FASTA file path for keep + keep_direct_repeat reads\n"
+      "  --adapters FILE        Library-specific adapter FASTA; optional\n"
+      "  --all                  Include unflagged reads in TSV\n"
+      "  --force                Replace existing output files for a new run\n\n"
+      << heading << "Performance and logging" << reset << "\n"
       "  -t, --threads N        Worker threads (default: min(8, hardware concurrency))\n"
-      "  --all                  Also emit unflagged reads (large output)\n"
-      "  --force                Replace existing output files for a new run\n"
+      "  --batch-bases N        Approx. bases per work batch (default: 2097152)\n"
+      "  --log-every N          Progress interval in seconds (default: 5; 0 disables)\n"
+      "                        Logs go to stderr; counts, elapsed time and throughput.\n\n"
+      << heading << "Screening parameters" << reset << "\n"
       "  --min-repeat-span N    Seeded repeat span in bp (default: 1800)\n"
       "  --min-seed-pairs N     Supporting seed pairs (default: 8)\n"
       "  --seed-mod N           Subsample 17-mers by factor N, power of 2 (default: 16)\n"
-      "  --batch-bases N        Approx. sequence bases per work batch (default: 2097152)\n"
-      "Also writes OUTPUT.quarantine.ids and OUTPUT.direct_repeat.ids.\n"
-      "Quarantine IDs are excluded from the strict operon set automatically.\n"
-      "Direct repeats alone are retained as candidate biological arrays.\n"
+      "  -h, --help             Show this help (terminal colors; NO_COLOR disables)\n\n"
+      << heading << "Output example: --output sample.hificheck.tsv" << reset << "\n"
+      "  sample.hificheck.tsv                  Read-level decisions\n"
+      "  sample.hificheck.tsv.summary.json     Counts, parameters and throughput\n"
+      "  sample.hificheck.tsv.quarantine.ids   Excluded + quarantined read IDs\n"
+      "  sample.hificheck.tsv.direct_repeat.ids  Retained direct-repeat candidate IDs\n"
+      "Suffixes are appended to the ENTIRE output path, including .tsv.\n"
+      "--summary overrides the JSON path; --retained-fasta creates an optional file.\n\n"
+      << heading << "Gzip input (Bash)" << reset << "\n"
+      "  set -o pipefail\n"
+      "  gzip -dc reads.fa.gz | hificheck -i - -o results.tsv -t 24\n\n"
       "Coordinates are zero-based, half-open. Adapter matching permits substitutions\n"
       "up to 10% of adapter length; indels and BAM/quality evidence are not assessed.\n";
 }
@@ -100,6 +130,7 @@ static Options parse_args(int argc, char** argv) {
         else if (k == "--summary") o.summary=v;
         else if (k == "--adapters") o.adapters=v;
         else if (k == "--retained-fasta") o.retained_fasta=v;
+        else if (k == "--log-every") o.log_every=static_cast<unsigned>(parse_ull(v,"log-every"));
         else if (k == "-t" || k == "--threads") o.threads=static_cast<unsigned>(parse_ull(v,"threads"));
         else if (k == "--min-repeat-span") o.min_repeat_span=static_cast<int>(parse_ull(v,"min-repeat-span"));
         else if (k == "--min-seed-pairs") o.min_seed_pairs=static_cast<int>(parse_ull(v,"min-seed-pairs"));
@@ -373,12 +404,54 @@ static BatchResult process_batch(Batch batch,const Options& o,const std::vector<
 static void json_string(std::ostream& o,const std::string& s) {
     o<<'"'; for(char c:s) { if(c=='\\'||c=='"') o<<'\\'; if(static_cast<unsigned char>(c)<32) o<<'?'; else o<<c; } o<<'"';
 }
+// Independent timer keeps reporting even while stdin or a worker is blocked.
+// Counters distinguish parsed input from results actually written in order.
+class Progress {
+    std::mutex mutex_;
+    std::condition_variable cv_;
+    bool stopped_=false;
+    std::thread timer_;
+public:
+    std::atomic<uint64_t> loaded{0}, loaded_bases{0}, processed{0}, processed_bases{0};
+    std::atomic<bool> eof{false};
+    explicit Progress(unsigned interval) {
+        if(!interval) return;
+        timer_=std::thread([this,interval] {
+            const auto start=std::chrono::steady_clock::now();
+            std::unique_lock<std::mutex> lock(mutex_);
+            while(!cv_.wait_for(lock,std::chrono::seconds(interval),[this]{return stopped_;})) {
+                const double seconds=std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count();
+                std::cerr << "[progress] elapsed=" << std::fixed << std::setprecision(1) << seconds
+                          << "s loaded=" << loaded.load() << " reads/" << loaded_bases.load()
+                          << " bases processed=" << processed.load() << " reads/" << processed_bases.load()
+                          << " bases rate=" << processed.load()/seconds << " reads/s input="
+                          << (eof.load()?"EOF":"reading") << "\n";
+            }
+        });
+    }
+    void stop() {
+        { std::lock_guard<std::mutex> lock(mutex_); stopped_=true; }
+        cv_.notify_all();
+        if(timer_.joinable()) timer_.join();
+    }
+    ~Progress() { stop(); }
+};
 int main(int argc,char** argv) {
     try {
         const Options o=parse_args(argc,argv);
         const auto started=std::chrono::steady_clock::now();
         // A forced new run removes an old success marker before touching output.
         if(o.force) std::filesystem::remove(o.summary);
+        std::cerr << "[start] input=" << (o.input=="-"?"stdin (plain FASTA)":o.input)
+                  << " threads=" << o.threads << " batch_bases=" << o.batch_bases
+                  << " log_every=" << o.log_every << "s\n"
+                  << "[output] TSV file: " << o.output << "\n"
+                  << "[output] JSON summary: " << o.summary << "\n"
+                  << "[output] Excluded/quarantined IDs: " << o.output << ".quarantine.ids\n"
+                  << "[output] Retained direct-repeat IDs: " << o.output << ".direct_repeat.ids\n";
+        if(!o.retained_fasta.empty()) std::cerr << "[output] Retained FASTA: " << o.retained_fasta << "\n";
+        std::cerr << "[screen] adapters=" << (o.adapters.empty()?"unassessed (no reference supplied)":o.adapters)
+                  << "; TSV rows=" << (o.all?"all reads":"flagged reads only") << "\n";
         const auto adapters=load_adapters(o.adapters);
         FastaReader reader(o.input);
         std::ofstream output(o.output,std::ios::binary);
@@ -399,6 +472,7 @@ int main(int argc,char** argv) {
         std::map<uint64_t,BatchResult> completed;
         bool done=false;
         std::exception_ptr worker_error;
+        Progress progress(o.log_every);
         std::vector<std::thread> workers;
         try {
         for(unsigned t=0;t<o.threads;++t) workers.emplace_back([&]() {
@@ -449,13 +523,14 @@ int main(int argc,char** argv) {
             if(!output || !quarantine_ids || !direct_repeat_ids ||
                (retained_fasta.is_open() && !retained_fasta)) throw std::runtime_error("Failed writing output");
             total+=result.counts; ++written;
-            if(total.reads/1000000 > (total.reads-result.counts.reads)/1000000)
-                std::cerr<<"Processed "<<total.reads<<" reads, "<<total.bases<<" bases\n";
+            progress.processed=total.reads;
+            progress.processed_bases=total.bases;
         };
         try {
             Batch batch; size_t batch_bases=0; Record r;
             const uint64_t max_inflight=std::max<uint64_t>(2,o.threads*3ULL);
             while(reader.next(r)) {
+                ++progress.loaded; progress.loaded_bases+=r.seq.size();
                 batch_bases+=r.seq.size();
                 batch.reads.push_back(std::move(r)); r=Record{};
                 if(batch_bases>=o.batch_bases) {
@@ -465,6 +540,7 @@ int main(int argc,char** argv) {
                     if(issued-written>=max_inflight) collect();
                 }
             }
+            progress.eof=true;
             if(!batch.reads.empty()) {
                 batch.index=issued++;
                 { std::lock_guard<std::mutex> lock(mutex); tasks.push_back(std::move(batch)); }
@@ -480,6 +556,7 @@ int main(int argc,char** argv) {
             for(auto& worker:workers) if(worker.joinable()) worker.join();
             throw;
         }
+        progress.stop();
         if(total.reads==0) throw std::runtime_error("No FASTA records found");
         output.flush();
         quarantine_ids.flush(); direct_repeat_ids.flush();
@@ -509,7 +586,7 @@ int main(int argc,char** argv) {
                <<(seconds>0?total.reads/seconds:0)<<",\n  \"fasta_quality_and_bam_tags\": \"unavailable\"\n}\n";
         summary.close();
         if(!summary) throw std::runtime_error("Failed writing summary");
-        std::cerr<<"Done: "<<total.reads<<" reads; quarantined="
+        std::cerr<<"[done] "<<total.reads<<" reads; "<<total.bases<<" bases; elapsed="<<std::fixed<<std::setprecision(1)<<seconds<<"s; quarantined="
                  <<(total.exclude_adapter+total.exclude_palindrome+total.quarantine)
                  <<" direct-repeat-candidates="<<total.keep_direct_repeat<<"; "<<std::fixed<<std::setprecision(1)
                  <<(seconds>0?total.reads/seconds:0)<<" reads/s\n";

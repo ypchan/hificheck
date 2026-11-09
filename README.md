@@ -151,8 +151,23 @@ gzip -dc fungal_ITS_reads.fasta.gz | ./bin/hificheck \
   -t 8
 ```
 
+Help uses cyan section headings in an interactive terminal. Redirected help is
+plain text; set `NO_COLOR=1` to disable colors explicitly.
+
+Startup logs list the input, worker count, adapter status and exact output paths.
+Progress is printed to **stderr every 5 seconds**, including while waiting for
+input or workers. Use `--log-every 10` to change the interval in seconds, or
+`--log-every 0` to disable periodic updates (startup and completion remain).
+`loaded` counts complete FASTA records read; `processed` counts records whose
+results have been written in input order, including records omitted from the
+TSV by the default filter. The rate is the average processed reads per second.
+`input=EOF` means input reading has finished; processing may still be underway.
+Counts are live snapshots. Total size is unknown for streaming input, so no
+percentage or ETA is claimed. A completion message reports totals and elapsed
+time. Save logs with `2> sample.hificheck.log` on the HiFiCheck command.
+
 For multiple samples or libraries, run one command per sample/library with a
-distinct output prefix and the correct adapter FASTA. Keep the sample ID and
+distinct output TSV path and the correct adapter FASTA. Keep the sample ID and
 read/ZMW identifiers for later independent-read support checks. A FASTA header
 without a reliable original molecule ID cannot by itself prove independence.
 
@@ -180,6 +195,12 @@ verified adapter sequence. Conversely, a biological inversion can enter
 `quarantine`. Apply independent-read and ITSx structure rules downstream.
 
 ## Output files
+
+`--output` / `-o` is an **exact TSV file path**, not a directory or a prefix.
+HiFiCheck appends sidecar suffixes to the entire path (including `.tsv`);
+it does not strip or add a TSV extension. Parent directories must already exist.
+`--summary FILE` overrides the JSON path. `--retained-fasta FILE` creates an
+additional FASTA only when requested.
 
 For `-o PREFIX.tsv`, HiFiCheck writes:
 

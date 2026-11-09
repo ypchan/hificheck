@@ -30,3 +30,11 @@ GCC 11.4: 12 tests passed in each. GCC 8/server validation not performed.
 Default make install destination is now $HOME/bin/hificheck.
 Verified default destination via dry run and installed/executed --help using
 a temporary prefix containing a space. No local home installation performed.
+
+CLI usability: grouped terminal-colored help (plain when redirected or NO_COLOR
+is set), explicit TSV-path and sidecar naming documentation, startup output
+paths and adapter status, and independent periodic stderr progress (default 5s;
+--log-every 0 disables). Logs distinguish loaded vs processed/written records,
+show bases, elapsed time, throughput and input EOF; no estimated total/ETA.
+Validated locally: make test, 15 tests passed, including pseudo-terminal color,
+redirected help and progress while stdin is blocked. Server install/run not done.
