@@ -73,12 +73,17 @@ g++ -O3 -std=c++17 -pthread -Wall -Wextra -o bin/hificheck hificheck.cpp
 ```
 
 You can run `./bin/hificheck` from the repository. To install the binary under
-your own home directory without administrator privileges:
+`$HOME/bin` by default without administrator privileges:
 
 ```bash
-make install PREFIX="$HOME/.local"
-"$HOME/.local/bin/hificheck" --help
+make install
+"$HOME/bin/hificheck" --help
 ```
+
+`make install` compiles the binary when needed. To use `hificheck` directly,
+ensure `$HOME/bin` is on your `PATH` (`export PATH="$HOME/bin:$PATH"`).
+Override the installation prefix with `make install PREFIX=/your/prefix`;
+the executable is installed under `PREFIX/bin`.
 
 No environment creation or package manager is involved. To verify the build,
 run `make test`. The tests use Python's standard library and synthetic reads;

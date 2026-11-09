@@ -26,3 +26,7 @@ Build compatibility: Makefile probes C++17 filesystem linking and falls back
 to -lstdc++fs; required flags no longer duplicated in default CXXFLAGS.
 Validated auto mode with local Conda compiler and explicit -lstdc++fs with
 GCC 11.4: 12 tests passed in each. GCC 8/server validation not performed.
+
+Default make install destination is now $HOME/bin/hificheck.
+Verified default destination via dry run and installed/executed --help using
+a temporary prefix containing a space. No local home installation performed.

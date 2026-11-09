@@ -1,6 +1,6 @@
 CXX ?= g++
 CXXFLAGS ?= -O3 -Wall -Wextra
-PREFIX ?= $(HOME)/.local
+PREFIX ?= $(HOME)
 
 # GCC 8 ships C++17 filesystem in a separate library. Probe the selected
 # compiler and flags, rather than assuming a compiler version or vendor.
@@ -19,8 +19,8 @@ test: bin/hificheck
 	python3 -m unittest discover -s tests -p 'test_hificheck.py' -v
 
 install: bin/hificheck
-	install -d $(DESTDIR)$(PREFIX)/bin
-	install -m 755 bin/hificheck $(DESTDIR)$(PREFIX)/bin/hificheck
+	install -d "$(DESTDIR)$(PREFIX)/bin"
+	install -m 755 bin/hificheck "$(DESTDIR)$(PREFIX)/bin/hificheck"
 
 clean:
 	rm -f bin/hificheck
