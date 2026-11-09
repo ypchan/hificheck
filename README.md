@@ -84,6 +84,18 @@ No environment creation or package manager is involved. To verify the build,
 run `make test`. The tests use Python's standard library and synthetic reads;
 they do not download data.
 
+The Makefile probes whether the compiler needs a separate C++17 filesystem
+library and adds `-lstdc++fs` when needed (for example, with GCC 8).
+If an older checkout fails with `undefined reference to std::filesystem`, run:
+
+```bash
+make LDLIBS=-lstdc++fs
+```
+
+With the current Makefile, `make FS_LIBS=-lstdc++fs` explicitly overrides the
+automatic probe. For manual compilation, place `-lstdc++fs` after
+`hificheck.cpp` in the compiler command.
+
 ## Input
 
 `-i/--input` accepts a plain `.fa`, `.fasta` or `.fna` file, including multiline

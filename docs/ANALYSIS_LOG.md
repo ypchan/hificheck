@@ -3,3 +3,4 @@
 2026-11-09 | Replaced simple README flowchart with six illustrated sequence classes; caption specifies exact terminal/palindrome conditions and priority. AI-generated raster schematic, not publication typography export.
 2026-11-09 | Integrated sequence structures, decision priority and output actions in one white-background README schematic; verified arrow orientations and action ordering visually.
 2026-11-09 | User approved latest integrated illustration; retained hificheck_integrated.png and removed four superseded concept PNG/SVG assets. README image and download references verified.
+2026-11-09 | Fixed filesystem link compatibility via Makefile probe and documented LDLIBS workaround. Auto and explicit library builds each passed 12 tests locally; target server compiler not tested.
